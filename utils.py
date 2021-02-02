@@ -3,6 +3,7 @@ import numpy as np
 from tqdm import tqdm
 from PIL import Image, ImageDraw
 from facenet_pytorch import MTCNN as mtcnn
+import albumentations as A
 
 def get_image_files(path):
     path = Path(path)
@@ -40,3 +41,21 @@ def crop(srcDir):
 
             # save the image
             img.save(fp=save_path / Path(fp.name.strip(".jpg") + "cropped__.jpg"))
+
+
+
+def augmentation(srcDir):
+    print("start doing Augmentation on images ...")
+    print("\n")
+    hflip = A.HorizontalFlip(p=1.0)
+    src_path = Path(srcDir)
+    save_path = src_path.parent / Path(f'{src_path.name}_Augmented')
+    save_path.mkdir(parents=True, exist_ok=True)
+    fp_images = get_image_files(path=src_path)
+    for fp in tqdm(fp_images):
+        suffix = fp.suffix
+        fn = fp.name.replace(suffix, '')
+        img = Image.open(fp)
+        transformed = hflip(image=np.array(img))
+        transformed_img = Image.fromarray(transformed['image'])
+        transformed_img.save(save_path / Path(fp.name.strip(".jpg") + "augmented__.jpg"))
