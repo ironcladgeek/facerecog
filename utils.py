@@ -2,9 +2,11 @@ from pathlib import Path
 from tqdm import tqdm
 from PIL import Image
 from facenet_pytorch import MTCNN
+import pandas as pd
+import re
 
-
-mtcnn = MTCNN(image_size=160)
+size = 160
+mtcnn = MTCNN(image_size=size)
 
 
 def get_image_files(path):
@@ -23,7 +25,7 @@ def face_crop(img, save_path=None):
     try:
         return mtcnn(img, save_path=str(save_path))
     except TypeError:
-        img_crp = center_crop(img)
+        img_crp = center_crop(img, image_size=size)
         if save_path is not None:
             img_crp.save(fp=str(save_path))
         return img_crp
@@ -71,3 +73,35 @@ def crop_images(src_dir, dst_dir=None):
         img = Image.open(fp)
         save_path = str(dst_dir / fp.name)
         face_crop(img=img, save_path=save_path)
+
+
+def get_df_from_folder(src_dir, sort_by_name=True, with_original_names=True):
+    """
+    Create a pd.DataFrame from image files found in the src_dir.
+
+    :param src_dir (str, PosixPath): Source directory of images.
+    :param sort_by_name (boolean): If True, the resulting dataframe will be sorted by image file names.
+    :param with_original_names (boolean): If True, the resulting dataframe will have a column
+        that contains original image names without '__.*__' pattern.
+
+    :return (pd.DataFrame): df[['image_id', 'file_path', 'image_original_name']]
+    """
+    fp_images = get_image_files(path=src_dir)
+    if sort_by_name:
+        fp_images = sorted(fp_images)
+
+    f_names = list(map(lambda x: x.name, fp_images))
+    df =  pd.DataFrame(zip(f_names, fp_images), columns=['image_id', 'file_path'])
+
+    if with_original_names:
+        pat = r'.*?(__.*__)\..*'
+        def remove_extra(image_name):
+            image_name = str(image_name)
+            res = re.findall(pat, image_name)
+            if len(res) > 0:
+                return image_name.replace(res[0], '')
+            return image_name
+
+        df['image_original_name'] = df['image_id'].apply(lambda x: remove_extra(x))
+
+    return df

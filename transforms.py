@@ -5,6 +5,9 @@ from pathlib import Path
 from PIL import Image
 from tqdm import tqdm
 
+from torchvision import transforms
+from facenet_pytorch import fixed_image_standardization
+
 
 def get_augs(h_flip=True, clahe=False, clahe_clip_limit=(1, 4)):
     augs = []
@@ -46,3 +49,15 @@ def augment_images(src_dir, dst_dir=None, h_flip=True, clahe=False, suffix='__au
         transformed_img = image_transform(img, augs)
         save_path = dst_dir / f"{fp.name.strip(fp.suffix)}{suffix}{fp.suffix}"
         transformed_img.save(str(save_path))
+
+
+def get_transforms():
+    """
+    PyTorch transforms that apply standard normalizations on image and turns it to tensor.
+    :return: torchvision.transforms
+    """
+    return transforms.Compose([
+        np.float32,
+        transforms.ToTensor(),
+        fixed_image_standardization
+    ])
