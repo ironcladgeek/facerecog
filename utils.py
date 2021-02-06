@@ -4,6 +4,7 @@ from PIL import Image
 from facenet_pytorch import MTCNN
 import pandas as pd
 import re
+import datetime
 
 size = 160
 mtcnn = MTCNN(image_size=size)
@@ -105,3 +106,13 @@ def get_df_from_folder(src_dir, sort_by_name=True, with_original_names=True):
         df['image_original_name'] = df['image_id'].apply(lambda x: remove_extra(x))
 
     return df
+
+
+def format_time(elp):
+    """
+    Takes a time in seconds and returns a string hh:mm:ss
+    """
+    # Round to the nearest second.
+    elapsed_rounded = int(round(elp))
+    # Format as hh:mm:ss
+    return str(datetime.timedelta(seconds=elapsed_rounded))
