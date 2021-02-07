@@ -76,7 +76,7 @@ def crop_images(src_dir, dst_dir=None):
         face_crop(img=img, save_path=save_path)
 
 
-def get_df_from_folder(src_dir, sort_by_name=True, with_original_names=True):
+def df_from_image_folder(src_dir, sort_by_name=True, with_original_names=True):
     """
     Create a pd.DataFrame from image files found in the src_dir.
 
