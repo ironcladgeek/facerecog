@@ -2,8 +2,15 @@ from utils import *
 from add_overlay import add_face_mask
 from transforms import augment_images
 from embeddings import get_embeddings
+from similarity import build_index, assessor
 import time
 import shutil
+from tqdm import tqdm
+from collections import OrderedDict
+from PIL import Image
+import matplotlib.pyplot as plt
+import os
+import numpy as np
 
 
 def producer(src_dir,
@@ -62,3 +69,48 @@ def producer(src_dir,
     elapsed = format_time(time.time() - s)
     print(f'Total time: {elapsed}')
     return df
+
+def aligner(gallery_df,
+            probe_df,
+            gallery_id_col='image_original_name',
+            gallery_embedding_col='embedding',
+            probe_id_col='image_original_name',
+            probe_embedding_col='embedding'):
+    #TODO: supply docstring
+
+    result = OrderedDict()
+    annoy_index = build_index(gallery_df[gallery_embedding_col].values, metric='euclidean', n_trees=50)
+    for id_probe, vec in tqdm(enumerate(probe_df[probe_embedding_col].values)):
+        sim_idx, sim_distances = assessor(annoy_index, query_vec=vec, k=-1, include_distances=True)
+        tmp_df = gallery_df[[gallery_id_col]].copy()
+        tmp_df.loc[sim_idx, 'distance'] = sim_distances
+        tmp_df.sort_values(by='distance', ascending=True, inplace=True)
+        tmp_df.drop_duplicates(subset=gallery_id_col, keep='first', inplace=True)
+
+        similarities = [{img_id: img_dist} for img_id, img_dist in zip(tmp_df[gallery_id_col].values,
+                                                                       tmp_df['distance'].values)]
+        result[probe_df.loc[id_probe, probe_id_col]] = similarities
+
+    return result
+
+def depictor(similarities, gallery_dir, probe_dir, fig_dir):
+    # TODO: supply docstring
+    fig_dir = Path(fig_dir)
+    fig_dir.mkdir(parents=True, exist_ok=True)
+
+    for fn_probe, sim_l in tqdm(similarities.items()):
+        probe_img = Image.open(os.path.join(probe_dir, fn_probe))
+        fn_gallery = list(sim_l[0].keys())[0]
+        gallery_img = Image.open(os.path.join(gallery_dir, fn_gallery))
+
+        fig = plt.figure()
+        ax1 = fig.add_subplot(121)
+        ax2 = fig.add_subplot(122)
+        ax1.imshow(np.array(probe_img))
+        ax1.title.set_text('Probe Image')
+        ax2.imshow(np.array(gallery_img))
+        ax2.title.set_text('Gallery Image')
+        plt.savefig(str(fig_dir / f"{fn_probe.split('.')[0]}_{fn_gallery.split('.')[0]}.jpg"), dpi=100, bbox_inches='tight')
+        plt.close()
+
+
