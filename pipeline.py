@@ -16,7 +16,7 @@ import numpy as np
 def producer(src_dir,
              dst_dir=None,
              do_masking=False,
-             mask_colors=['blue', 'black'],
+             mask_colors=['white', 'blue', 'black', 'red'],
              do_augs=False,
              h_flip=True,
              clahe=True,
@@ -112,5 +112,3 @@ def depictor(similarities, gallery_dir, probe_dir, fig_dir):
         ax2.title.set_text('Gallery Image')
         plt.savefig(str(fig_dir / f"{fn_probe.split('.')[0]}_{fn_gallery.split('.')[0]}.jpg"), dpi=100, bbox_inches='tight')
         plt.close()
-
-
