@@ -1,31 +1,29 @@
-import os
-import sys
 import numpy as np
 from PIL import Image, ImageFile
 import glob
+import os
 
 class FaceMasker:
     KEY_FACIAL_FEATURES = ('nose_bridge', 'chin')
 
-    def __init__(self, face_path, mask_list, out_path, show=False, model='hog'):
-        self.face_path = face_path
-        # self.mask_path = mask_path
-        self.out_path = out_path
+    def __init__(self, src_path, mask_colors, dst_path, show=False, model='hog'):
+        self.src_path = src_path
+        self.dst_path = dst_path
         self.show = show
         self.model = model
         self._face_img: ImageFile = None
-        self.mask_list = mask_list
+        self.mask_colors = mask_colors
 
 
 
     def mask(self):
         import face_recognition
 
-        face_image_np = face_recognition.load_image_file(self.face_path)
+        face_image_np = face_recognition.load_image_file(self.src_path)
         face_locations = face_recognition.face_locations(face_image_np, model=self.model)
         face_landmarks = face_recognition.face_landmarks(face_image_np, face_locations)
         self._face_img = Image.fromarray(face_image_np)
-        # self._mask_img = Image.open(self.mask_path)
+
 
         found_face = False
         for face_landmark in face_landmarks:
@@ -45,9 +43,7 @@ class FaceMasker:
         if found_face:
             if self.show:
                 self._face_img.show()
-            #
-            # # save
-            # self._save()
+
         else:
             print('Found no face.')
 
@@ -63,25 +59,24 @@ class FaceMasker:
         chin_left_point = chin[chin_len // 8]
         chin_right_point = chin[chin_len * 7 // 8]
 
-        for name in self.mask_list:
+        for name in self.mask_colors:
             for dir_ in glob.iglob("masks/*.png"):
                 if name == dir_.split("/")[-1].strip(".png"):
-                    print("adding {}-mask".format(name))
-                    masks=Image.open(dir_))
+                    mask=Image.open(dir_)
                     # split mask and resize
-                    width = self.masks[i].width
-                    height = self.masks[i].height
+                    width = mask.width
+                    height = mask.height
                     width_ratio = 1.2
                     new_height = int(np.linalg.norm(nose_v - chin_bottom_v))
 
                     # left
-                    mask_left_img = self.masks[i].crop((0, 0, width // 2, height))
+                    mask_left_img = mask.crop((0, 0, width // 2, height))
                     mask_left_width = self.get_distance_from_point_to_line(chin_left_point, nose_point, chin_bottom_point)
                     mask_left_width = int(mask_left_width * width_ratio)
                     mask_left_img = mask_left_img.resize((mask_left_width, new_height))
 
                     # right
-                    mask_right_img = self.masks[i].crop((width // 2, 0, width, height))
+                    mask_right_img = mask.crop((width // 2, 0, width, height))
                     mask_right_width = self.get_distance_from_point_to_line(chin_right_point, nose_point, chin_bottom_point)
                     mask_right_width = int(mask_right_width * width_ratio)
                     mask_right_img = mask_right_img.resize((mask_right_width, new_height))
@@ -108,14 +103,9 @@ class FaceMasker:
                     # add mask
                     tmp = self._face_img.copy()
                     tmp.paste(mask_img, (box_x, box_y), mask_img)
-                    path_splits = os.path.splitext(self.face_path)
-                    tmp.save(self.out_path+"/"+self.face_path.split("/")[-1].strip(".jpg") + "__"+name+"-mask"+"__"+ ".jpg")
+                    path_splits = os.path.splitext(self.src_path)
+                    tmp.save(self.dst_path+"/"+self.src_path.split("/")[-1].strip(".jpg") + "__"+name+"-mask"+"__"+ ".jpg")
 
-    # def _save(self):
-    #     path_splits = os.path.splitext(self.face_path)
-    #     new_face_path = path_splits[0] + '-with-mask' + path_splits[1]
-    #     self._face_img.save(new_face_path)
-    #     print(f'Save to {new_face_path}')
 
     @staticmethod
     def get_distance_from_point_to_line(point, line_point1, line_point2):
