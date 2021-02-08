@@ -1,24 +1,15 @@
-import subprocess
+from facemasker import FaceMasker
 from tqdm import tqdm
 from pathlib import Path
-import glob
 import shutil
 from utils import get_image_files, format_time
 from multiprocessing import Pool, cpu_count
 import time
 
 
-def put_mask(fp, color):
-    if color == 'white':
-        command = f"face-mask {fp}"
-    else:
-        command = f"face-mask {fp} --{color}"
-
-    # execute the shell command in Python
-    process = subprocess.Popen(command.split(),
-                               stdout=subprocess.PIPE,
-                               stderr=subprocess.PIPE)
-    stdout, stderr = process.communicate()
+def put_mask(fp, dst_path, mask_colors):
+    f = FaceMasker(src_path=str(fp), dst_path=str(dst_path), mask_colors=mask_colors)
+    f.mask()
 
 
 def add_face_mask(src_path,
@@ -48,23 +39,13 @@ def add_face_mask(src_path,
     # get image files in the src_path
     fp_images = get_image_files(path=src_path)
 
-
-    for color in mask_colors:
-        print(f'Adding {color} mask to images ...')
-        # add mask to images
-        if parallel: # multiprocessing
-            with Pool(processes=cpu_count()) as p:
-                p.starmap(put_mask, [(fp, color) for fp in fp_images])
-        else: # single process
-            for fp in tqdm(fp_images):
-                put_mask(fp, color)
-
-        # rename files
-        for fp in glob.iglob(str(src_path / '*-with-mask*')):
-            src = Path(fp)
-            new_name = src.name.replace('-with-mask', f'__{color}-mask__')
-            dst = dst_path / f'{new_name}'
-            shutil.move(src, dst)
+    print('Adding face masks to images ...')
+    if parallel:  # multiprocessing
+        with Pool(processes=cpu_count()) as p:
+            p.starmap(put_mask, [(fp, dst_path, mask_colors) for fp in fp_images])
+    else:  # single process
+        for fp in tqdm(fp_images):
+            put_mask(fp, dst_path, mask_colors)
 
     # copy original images to dst_path
     if copy_originals_to_dst and src_path != dst_path:
