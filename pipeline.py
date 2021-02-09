@@ -24,7 +24,23 @@ def producer(src_dir,
              use_saved_model=True,
              copy_src_to_dst_dir=False,
              parallel=True):
-    # TODO: supply docstring
+    """
+    Do image processing, augmentation and feature extraction for images in src_dir.
+
+    :param src_dir (str, PosixPath): Source directory of images.
+    :param dst_dir (str, PosixPath): If not None, the processed images will be saved here, otherwise, in src_dir.
+    :param do_masking (boolean): If True, will add face masks to images. default False.
+    :param mask_colors (list): List of face mask colors to be added to images.
+    :param do_augs (boolean): If True, will do image augmentations. default False.
+    :param h_flip (boolean): If True, apply horizontal flip augmentation on images.
+    :param clahe (boolean): If True, apply CLAHE augmentation.
+    :param batch_size (int): how many samples per batch to load (default: 16).
+    :param use_saved_model (boolean): If True, loads the saved pre-trained model. Otherwise, downloads it from internet.
+    :param copy_src_to_dst_dir (boolean): If True, copy images found in src_dir to dst_dir.
+    :param parallel (boolean): If True, runs code using multi-processors.
+
+    :return (pd.DataFrame): DataFrame contains of image names and embeddings.
+    """
     s = time.time()
 
     src_dir = Path(src_dir)
@@ -76,7 +92,18 @@ def aligner(gallery_df,
             gallery_embedding_col='embedding',
             probe_id_col='image_original_name',
             probe_embedding_col='embedding'):
-    #TODO: supply docstring
+    """
+    Get similarities of images in probe_df to all images in gallery_df.
+
+    :param gallery_df (pd.DataFrame): DataFrame of gallery images embeddings.
+    :param probe_df (pd.DataFrame): DataFrame of probe images embeddings
+    :param gallery_id_col (str): Column name in gallery_df that contains image names.
+    :param gallery_embedding_col (str): Column name in gallery_df that contains image embeddings.
+    :param probe_id_col (str): Column name in probe_df that contains image names.
+    :param probe_embedding_col (str): Column name in gallery_df that contains image embeddings.
+    :return (dict): Dictionary of similarities. Keys are probe images.
+        Values are sorted gallery images based on being most similar.
+    """
 
     result = OrderedDict()
     annoy_index = build_index(gallery_df[gallery_embedding_col].values, metric='euclidean', n_trees=50)
@@ -94,7 +121,14 @@ def aligner(gallery_df,
     return result
 
 def depictor(similarities, gallery_dir, probe_dir, fig_dir):
-    # TODO: supply docstring
+    """
+    Generate pair plots for probe images and gallery images.
+
+    :param similarities (dict): Dictionary of similarities.
+    :param gallery_dir (str, PosixPath): Path to gallery images directory.
+    :param probe_dir (str, PosixPath): Path to probe images directory.
+    :param fig_dir (str, PosixPath): Path to output directory for saving plots. Will be created if not exists.
+    """
     fig_dir = Path(fig_dir)
     fig_dir.mkdir(parents=True, exist_ok=True)
 

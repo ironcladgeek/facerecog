@@ -2,7 +2,14 @@ from annoy import AnnoyIndex
 
 
 def build_index(embedding_l, metric='euclidean', n_trees=50):
-    # TODO: supply docstring
+    """
+    Build a forest of Annoy indices.
+
+    :param embedding_l (list): list of embedding  vectors.
+    :param metric (string): metric of similarity. Metric can be "angular", "euclidean", "manhattan", "hamming", or "dot".
+    :param n_trees (int): builds a forest of n_trees trees.
+    :return AnnoyIndex:
+    """
     f = len(embedding_l[0])
     t = AnnoyIndex(f, metric)
     for i, vec in enumerate(embedding_l):
@@ -13,7 +20,15 @@ def build_index(embedding_l, metric='euclidean', n_trees=50):
 
 
 def assessor(annoy_index, query_vec, k=-1, include_distances=True):
-    # TODO: supply docstring
+    """
+    Get K nearest neighbors by vector.
+
+    :param annoy_index (AnnoyIndex): Forest of indices.
+    :param query_vec (list): Vector of embedding.
+    :param k (int): Number of nearest neighbors. If -1, gets all items. default -1.
+    :param include_distances (bool): If True, return distances as well.
+    :return (list or tuple of lists): sorted indices by similarities also return distances if `include_distances=True`.
+    """
     if k == -1:
         k = annoy_index.get_n_items()
 

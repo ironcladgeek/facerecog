@@ -46,6 +46,8 @@ print('Done\n')
 # get gallery/probe dataframes that contain images embeddings
 gallery_df = producer(GALLERY_DIR, do_masking=True, do_augs=True)
 probe_df = producer(PROBE_DIR)
+print(f'gallery_df shape: {gallery_df.shape}')
+print(f'probe_df shape: {probe_df.shape}\n')
 
 # get similarities for probe images
 # resulting dict is something like this:
