@@ -16,7 +16,7 @@ import numpy as np
 def producer(src_dir,
              dst_dir=None,
              do_masking=False,
-             mask_colors=['white', 'blue', 'black', 'red'],
+             mask_colors=['white', 'blue', 'black'],
              do_augs=False,
              h_flip=True,
              clahe=True,
@@ -120,7 +120,7 @@ def aligner(gallery_df,
 
     return result
 
-def depictor(similarities, gallery_dir, probe_dir, fig_dir):
+def depictor(similarities, gallery_dir, probe_dir, fig_dir, add_suffix=True, suffix='.jpg'):
     """
     Generate pair plots for probe images and gallery images.
 
@@ -133,9 +133,11 @@ def depictor(similarities, gallery_dir, probe_dir, fig_dir):
     fig_dir.mkdir(parents=True, exist_ok=True)
 
     for fn_probe, sim_l in tqdm(similarities.items()):
-        probe_img = Image.open(os.path.join(probe_dir, fn_probe))
+        pfn = fn_probe + suffix if add_suffix else fn_probe
+        probe_img = Image.open(os.path.join(probe_dir, pfn))
         fn_gallery = list(sim_l[0].keys())[0]
-        gallery_img = Image.open(os.path.join(gallery_dir, fn_gallery))
+        gfn = fn_gallery + suffix if add_suffix else fn_gallery
+        gallery_img = Image.open(os.path.join(gallery_dir, gfn))
 
         fig = plt.figure()
         ax1 = fig.add_subplot(121)
