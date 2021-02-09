@@ -100,8 +100,8 @@ def df_from_image_folder(src_dir, sort_by_name=True, with_original_names=True):
             image_name = str(image_name)
             res = re.findall(pat, image_name)
             if len(res) > 0:
-                return image_name.replace(res[0], '')
-            return image_name
+                image_name = image_name.replace(res[0], '')
+            return image_name.split('.')[0]     # remove file extension
 
         df['image_original_name'] = df['image_id'].apply(lambda x: remove_extra(x))
 
@@ -116,3 +116,13 @@ def format_time(elp):
     elapsed_rounded = int(round(elp))
     # Format as hh:mm:ss
     return str(datetime.timedelta(seconds=elapsed_rounded))
+
+
+def accuracy_score(similarities_dict, y_true_df, add_file_extension=True, suffix='.jpg'):
+    # TODO: complete the function
+    # probe_images = [k for k, v in similarities_dict.items()]
+    # g_images = [v[:5] for k, v in similarities_dict.items()]
+    # gallery_images = []
+    # for o in g_images:
+    #     gallery_images.append([k for k, v in o])
+    pass
