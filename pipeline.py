@@ -91,7 +91,8 @@ def aligner(gallery_df,
             gallery_id_col='image_original_name',
             gallery_embedding_col='embedding',
             probe_id_col='image_original_name',
-            probe_embedding_col='embedding'):
+            probe_embedding_col='embedding',
+            n_trees=50):
     """
     Get similarities of images in probe_df to all images in gallery_df.
 
@@ -101,21 +102,23 @@ def aligner(gallery_df,
     :param gallery_embedding_col (str): Column name in gallery_df that contains image embeddings.
     :param probe_id_col (str): Column name in probe_df that contains image names.
     :param probe_embedding_col (str): Column name in gallery_df that contains image embeddings.
+    :param n_trees (int): Builds a forest of n_trees trees (Annoy indices).
+
     :return (dict): Dictionary of similarities. Keys are probe images.
         Values are sorted gallery images based on being most similar.
     """
 
     result = OrderedDict()
-    annoy_index = build_index(gallery_df[gallery_embedding_col].values, metric='euclidean', n_trees=50)
+    annoy_index = build_index(gallery_df[gallery_embedding_col].values, metric='euclidean', n_trees=n_trees)
     for id_probe, vec in tqdm(enumerate(probe_df[probe_embedding_col].values)):
-        sim_idx, sim_distances = assessor(annoy_index, query_vec=vec, k=-1, include_distances=True)
+        sim_idx, sim_scores = assessor(annoy_index, query_vec=vec, k=-1, include_similarity=True)
         tmp_df = gallery_df[[gallery_id_col]].copy()
-        tmp_df.loc[sim_idx, 'distance'] = sim_distances
-        tmp_df.sort_values(by='distance', ascending=True, inplace=True)
+        tmp_df.loc[sim_idx, 'similarity'] = sim_scores
+        tmp_df.sort_values(by='similarity', ascending=False, inplace=True)
         tmp_df.drop_duplicates(subset=gallery_id_col, keep='first', inplace=True)
 
-        similarities = [{img_id: img_dist} for img_id, img_dist in zip(tmp_df[gallery_id_col].values,
-                                                                       tmp_df['distance'].values)]
+        similarities = [{img_id: img_sim} for img_id, img_sim in zip(tmp_df[gallery_id_col].values,
+                                                                       tmp_df['similarity'].values)]
         result[probe_df.loc[id_probe, probe_id_col]] = similarities
 
     return result
