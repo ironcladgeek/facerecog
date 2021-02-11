@@ -1,4 +1,7 @@
-FROM ubuntu:18.04
+FROM nvidia/cuda:10.1-base-ubuntu18.04
+CMD nvidia-smi
+RUN echo nvidia-smi
+
 ENV PATH="/root/miniconda3/bin:${PATH}"
 ARG PATH="/root/miniconda3/bin:${PATH}"
 RUN apt-get update
@@ -14,7 +17,7 @@ RUN wget \
 
 
 RUN conda --version
-
+ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 
 # Create the environment:

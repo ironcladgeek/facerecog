@@ -3,6 +3,10 @@ from pymongo import MongoClient
 from pathlib import Path
 import pprint
 from pipeline import producer, aligner
+import torch
+
+print('Is GPU in:')
+print(torch.cuda.is_available())
 
 # Create directory for downloading gallery and probe images
 DATA_DIR = Path('downloads')
@@ -62,5 +66,5 @@ for k, v in similarity_dct.items():
     inserted_id = collection.insert_one(candidate_list).inserted_id
 
 # print to make sure that result has been saved correctly
-for result_list in collection.find():
-    pprint.pprint(result_list)
+# for result_list in collection.find():
+    # pprint.pprint(result_list)
