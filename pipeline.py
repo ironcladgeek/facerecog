@@ -83,7 +83,7 @@ def producer(src_dir,
                         use_saved_model=use_saved_model)
 
     elapsed = format_time(time.time() - s)
-    print(f'Total time: {elapsed}')
+    print(f'Producing embeddings took: {elapsed}\n')
     return df
 
 def aligner(gallery_df,
@@ -110,7 +110,7 @@ def aligner(gallery_df,
 
     result = OrderedDict()
     annoy_index = build_index(gallery_df[gallery_embedding_col].values, metric='euclidean', n_trees=n_trees)
-    for id_probe, vec in tqdm(enumerate(probe_df[probe_embedding_col].values)):
+    for id_probe, vec in tqdm(enumerate(probe_df[probe_embedding_col].values), total=len(probe_df)):
         sim_idx, sim_scores = assessor(annoy_index, query_vec=vec, k=-1, include_similarity=True)
         tmp_df = gallery_df[[gallery_id_col]].copy()
         tmp_df.loc[sim_idx, 'similarity'] = sim_scores

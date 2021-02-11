@@ -62,7 +62,7 @@ def crop_images(src_dir, dst_dir=None):
     :param dst_dir (str, PosixPath): If not None, the cropped images will be saved here, otherwise, in src_dir.
     :return: None
     """
-    print("Cropping images ...")
+    print("Detecting faces and cropping images ...")
 
     src_dir = Path(src_dir)
     dst_dir = Path(dst_dir) if dst_dir is not None else src_dir

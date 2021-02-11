@@ -28,6 +28,7 @@ def get_embeddings(df,
     _df = df.copy()
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
     print('Loading pre-trained model ...')
+    print(f'The model is running on "{device.upper()}"')
     if use_saved_model:
         if pretrained_model == 'vggface2':
             resnet = torch.load('models/resnet_vggface2.pth')
