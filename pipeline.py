@@ -16,7 +16,7 @@ import numpy as np
 def producer(src_dir,
              dst_dir=None,
              do_masking=False,
-             mask_colors=['white', 'blue', 'black', 'red'],
+             mask_colors=['white', 'blue', 'black'],
              do_augs=False,
              h_flip=True,
              clahe=True,
@@ -24,7 +24,23 @@ def producer(src_dir,
              use_saved_model=True,
              copy_src_to_dst_dir=False,
              parallel=True):
-    # TODO: supply docstring
+    """
+    Do image processing, augmentation and feature extraction for images in src_dir.
+
+    :param src_dir (str, PosixPath): Source directory of images.
+    :param dst_dir (str, PosixPath): If not None, the processed images will be saved here, otherwise, in src_dir.
+    :param do_masking (boolean): If True, will add face masks to images. default False.
+    :param mask_colors (list): List of face mask colors to be added to images.
+    :param do_augs (boolean): If True, will do image augmentations. default False.
+    :param h_flip (boolean): If True, apply horizontal flip augmentation on images.
+    :param clahe (boolean): If True, apply CLAHE augmentation.
+    :param batch_size (int): how many samples per batch to load (default: 16).
+    :param use_saved_model (boolean): If True, loads the saved pre-trained model. Otherwise, downloads it from internet.
+    :param copy_src_to_dst_dir (boolean): If True, copy images found in src_dir to dst_dir.
+    :param parallel (boolean): If True, runs code using multi-processors.
+
+    :return (pd.DataFrame): DataFrame contains of image names and embeddings.
+    """
     s = time.time()
 
     src_dir = Path(src_dir)
@@ -67,7 +83,7 @@ def producer(src_dir,
                         use_saved_model=use_saved_model)
 
     elapsed = format_time(time.time() - s)
-    print(f'Total time: {elapsed}')
+    print(f'Producing embeddings took: {elapsed}\n')
     return df
 
 def aligner(gallery_df,
@@ -75,33 +91,56 @@ def aligner(gallery_df,
             gallery_id_col='image_original_name',
             gallery_embedding_col='embedding',
             probe_id_col='image_original_name',
-            probe_embedding_col='embedding'):
-    #TODO: supply docstring
+            probe_embedding_col='embedding',
+            n_trees=50):
+    """
+    Get similarities of images in probe_df to all images in gallery_df.
+
+    :param gallery_df (pd.DataFrame): DataFrame of gallery images embeddings.
+    :param probe_df (pd.DataFrame): DataFrame of probe images embeddings
+    :param gallery_id_col (str): Column name in gallery_df that contains image names.
+    :param gallery_embedding_col (str): Column name in gallery_df that contains image embeddings.
+    :param probe_id_col (str): Column name in probe_df that contains image names.
+    :param probe_embedding_col (str): Column name in gallery_df that contains image embeddings.
+    :param n_trees (int): Builds a forest of n_trees trees (Annoy indices).
+
+    :return (dict): Dictionary of similarities. Keys are probe images.
+        Values are sorted gallery images based on being most similar.
+    """
 
     result = OrderedDict()
-    annoy_index = build_index(gallery_df[gallery_embedding_col].values, metric='euclidean', n_trees=50)
-    for id_probe, vec in tqdm(enumerate(probe_df[probe_embedding_col].values)):
-        sim_idx, sim_distances = assessor(annoy_index, query_vec=vec, k=-1, include_distances=True)
+    annoy_index = build_index(gallery_df[gallery_embedding_col].values, metric='euclidean', n_trees=n_trees)
+    for id_probe, vec in tqdm(enumerate(probe_df[probe_embedding_col].values), total=len(probe_df)):
+        sim_idx, sim_scores = assessor(annoy_index, query_vec=vec, k=-1, include_similarity=True)
         tmp_df = gallery_df[[gallery_id_col]].copy()
-        tmp_df.loc[sim_idx, 'distance'] = sim_distances
-        tmp_df.sort_values(by='distance', ascending=True, inplace=True)
+        tmp_df.loc[sim_idx, 'similarity'] = sim_scores
+        tmp_df.sort_values(by='similarity', ascending=False, inplace=True)
         tmp_df.drop_duplicates(subset=gallery_id_col, keep='first', inplace=True)
 
-        similarities = [{img_id: img_dist} for img_id, img_dist in zip(tmp_df[gallery_id_col].values,
-                                                                       tmp_df['distance'].values)]
+        similarities = [{img_id: img_sim} for img_id, img_sim in zip(tmp_df[gallery_id_col].values,
+                                                                       tmp_df['similarity'].values)]
         result[probe_df.loc[id_probe, probe_id_col]] = similarities
 
     return result
 
-def depictor(similarities, gallery_dir, probe_dir, fig_dir):
-    # TODO: supply docstring
+def depictor(similarities, gallery_dir, probe_dir, fig_dir, add_suffix=True, suffix='.jpg'):
+    """
+    Generate pair plots for probe images and gallery images.
+
+    :param similarities (dict): Dictionary of similarities.
+    :param gallery_dir (str, PosixPath): Path to gallery images directory.
+    :param probe_dir (str, PosixPath): Path to probe images directory.
+    :param fig_dir (str, PosixPath): Path to output directory for saving plots. Will be created if not exists.
+    """
     fig_dir = Path(fig_dir)
     fig_dir.mkdir(parents=True, exist_ok=True)
 
     for fn_probe, sim_l in tqdm(similarities.items()):
-        probe_img = Image.open(os.path.join(probe_dir, fn_probe))
+        pfn = fn_probe + suffix if add_suffix else fn_probe
+        probe_img = Image.open(os.path.join(probe_dir, pfn))
         fn_gallery = list(sim_l[0].keys())[0]
-        gallery_img = Image.open(os.path.join(gallery_dir, fn_gallery))
+        gfn = fn_gallery + suffix if add_suffix else fn_gallery
+        gallery_img = Image.open(os.path.join(gallery_dir, gfn))
 
         fig = plt.figure()
         ax1 = fig.add_subplot(121)

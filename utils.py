@@ -62,7 +62,7 @@ def crop_images(src_dir, dst_dir=None):
     :param dst_dir (str, PosixPath): If not None, the cropped images will be saved here, otherwise, in src_dir.
     :return: None
     """
-    print("Cropping images ...")
+    print("Detecting faces and cropping images ...")
 
     src_dir = Path(src_dir)
     dst_dir = Path(dst_dir) if dst_dir is not None else src_dir
@@ -117,12 +117,36 @@ def format_time(elp):
     # Format as hh:mm:ss
     return str(datetime.timedelta(seconds=elapsed_rounded))
 
+import pdb
+def accuracy_score(similarities_dict, y_true_df):
+    # TODO: supply docstring
+    probe_images = [k for k, v in similarities_dict.items()]
+    g_images = [v[:5] for k, v in similarities_dict.items()]
+    gallery_images = []
+    for o in g_images:
+        gallery_images.append([k for d in o for k, v in d.items()])
 
-def accuracy_score(similarities_dict, y_true_df, add_file_extension=True, suffix='.jpg'):
-    # TODO: complete the function
-    # probe_images = [k for k, v in similarities_dict.items()]
-    # g_images = [v[:5] for k, v in similarities_dict.items()]
-    # gallery_images = []
-    # for o in g_images:
-    #     gallery_images.append([k for k, v in o])
-    pass
+    if isinstance(y_true_df, str):
+        y_true_df = pd.read_csv(y_true_df)
+
+    preds_df = pd.DataFrame(zip(probe_images, gallery_images), columns=['probe', 'gallery_top_5'])
+    n = preds_df.shape[0]
+    preds_df.index = preds_df['probe']
+    preds_df = preds_df.reindex(y_true_df['probe'])
+    preds_df.reset_index(drop=True, inplace=True)
+    preds_df = preds_df.iloc[:n].copy()
+    y_true_df = y_true_df.iloc[:n].copy()
+
+    preds_df['y_true'] = y_true_df['gallery']
+
+    preds_df['gallery_top_1'] = preds_df['gallery_top_5'].apply(lambda x: x[0])
+
+    preds_df['is_top_1'] = (preds_df['gallery_top_1'] == preds_df['y_true'])
+
+    preds_df['is_in_top_5'] = preds_df.apply(lambda x: x['y_true'] in x['gallery_top_5'], axis=1)
+
+    acc_top_1 = preds_df['is_top_1'].sum() / preds_df.shape[0]
+    acc_top_5 = preds_df['is_in_top_5'].sum() / preds_df.shape[0]
+
+    return acc_top_1, acc_top_5, preds_df
+
