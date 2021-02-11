@@ -3,10 +3,12 @@ from pymongo import MongoClient
 from pathlib import Path
 import pprint
 from pipeline import producer, aligner
+from utils import format_time
+import time
 import torch
 
-print('Is GPU in:')
-print(torch.cuda.is_available())
+s = time.time()
+print(f'Is GPU available: {torch.cuda.is_available()}\n')
 
 # Create directory for downloading gallery and probe images
 DATA_DIR = Path('downloads')
@@ -26,12 +28,12 @@ collection.remove({})
 # read the list of probe images
 probe_directory = "http://localhost/images/probe/"      # TODO: change localhost to 'nginx'
 probe_images = requests.get(probe_directory + "images.txt").text.split()
-print("The number of probe images is equal to " + str(len(probe_images)))
+print("Number of probe images: " + str(len(probe_images)))
 
 # read the list of gallery images
 gallery_directory = "http://localhost/images/gallery/"  # TODO: change localhost to 'nginx'
 gallery_images = requests.get(gallery_directory + "images.txt").text.split()
-print("The number of gallery images is equal to " + str(len(gallery_images)))
+print("Number of gallery images: " + str(len(gallery_images)))
 
 print('Downloading probe images ... ', end='')
 for img_fn in probe_images:
@@ -48,8 +50,11 @@ for img_fn in gallery_images:
 print('Done\n')
 
 # get gallery/probe dataframes that contain images embeddings
-gallery_df = producer(GALLERY_DIR, do_masking=True, do_augs=True)
-probe_df = producer(PROBE_DIR)
+print('Processing gallery images ... \n')
+gallery_df = producer(GALLERY_DIR, do_masking=True, do_augs=True, batch_size=8)
+print('Processing probe images ... \n')
+probe_df = producer(PROBE_DIR, batch_size=8)
+
 print(f'gallery_df shape: {gallery_df.shape}')
 print(f'probe_df shape: {probe_df.shape}\n')
 
@@ -68,3 +73,6 @@ for k, v in similarity_dct.items():
 # print to make sure that result has been saved correctly
 # for result_list in collection.find():
     # pprint.pprint(result_list)
+
+elapsed = format_time(time.time() - s)
+print(f'\nTotal application run time: {elapsed}')
