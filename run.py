@@ -14,7 +14,7 @@ GALLERY_DIR.mkdir(parents=True, exist_ok=True)
 # connect to MongoDB to store results in one database
 # which named your team_name and authorized with your team_pass
 client = MongoClient(host='localhost', port=27017)      # TODO: change localhost to 'mongodb'
-db = client.team_name
+db = client.grinders
 db.authenticate('grinders', '09172226951')
 collection = db.team_name
 collection.remove({})
