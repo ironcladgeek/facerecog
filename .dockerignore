@@ -17,4 +17,3 @@ coverage.xml
 *.log
 .git
 .idea
-grinders.tar
